@@ -61,19 +61,19 @@ object ImageNetApp {
 
     val loader = new ImageNetLoader("sparknet")
     log("loading train data")
-    var trainRDD = loader.apply(sc, "ILSVRC2012_training/", "train.txt")
+    var trainRDD = loader.apply(sc, "shuffled_trainset/files-shuf-0", "train_correct.txt")
     log("loading test data")
-    val testRDD = loader.apply(sc, "ILSVRC2012_val/", "val.txt")
+    val testRDD = loader.apply(sc, "ILSVRC2012_val_tar_correct/validation.0", "val.txt")
 
     log("processing train data")
     val trainConverter = new ScaleAndConvert(trainBatchSize, fullHeight, fullWidth)
-    var trainMinibatchRDD = trainConverter.makeMinibatchRDD(trainRDD).persist()
+    var trainMinibatchRDD = trainConverter.makeMinibatchRDD(trainRDD).persist(StorageLevel.DISK_ONLY)
     val numTrainMinibatches = trainMinibatchRDD.count()
     log("numTrainMinibatches = " + numTrainMinibatches.toString)
 
     log("processing test data")
     val testConverter = new ScaleAndConvert(testBatchSize, fullHeight, fullWidth)
-    var testMinibatchRDD = testConverter.makeMinibatchRDD(testRDD).persist()
+    var testMinibatchRDD = testConverter.makeMinibatchRDD(testRDD).persist(StorageLevel.DISK_ONLY)
     val numTestMinibatches = testMinibatchRDD.count()
     log("numTestMinibatches = " + numTestMinibatches.toString)
 

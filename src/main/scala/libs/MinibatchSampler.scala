@@ -20,41 +20,51 @@ class MinibatchSampler(minibatchIt: Iterator[(Array[ByteImage], Array[Int])], to
   var indicesIndex = 0
   var currMinibatchPosition = -1
 
-  var currMinibatchImages = None: Option[Array[ByteImage]]
-  var currMinibatchLabels = None: Option[Array[Int]]
+  val numMinibatchesToLoad = 20
+  var imagePosition = 0
+  var labelPosition = 0
+  var loaded = false
 
-  private def nextMinibatch() = {
-    it = it.drop(indices(indicesIndex) - currMinibatchPosition - 1)
-    currMinibatchPosition = indices(indicesIndex)
-    indicesIndex += 1
-    assert(it.hasNext)
-    val (images, labels) = it.next
-    currMinibatchImages = Some(images)
-    currMinibatchLabels = Some(labels)
+  var currImageMinibatches = new Array[Array[ByteImage]](numMinibatchesToLoad)
+  var currLabelMinibatches = new Array[Array[Int]](numMinibatchesToLoad)
+
+  private def loadMinibatches() = {
+    var i = 0
+    while (i < numMinibatchesToLoad && indicesIndex < indices.length) {
+      it = it.drop(indices(indicesIndex) - currMinibatchPosition - 1)
+      currMinibatchPosition = indices(indicesIndex)
+      indicesIndex += 1
+      assert(it.hasNext)
+      val (images, labels) = it.next
+      currImageMinibatches(i) = images
+      currLabelMinibatches(i) = labels
+      i += 1
+    }
   }
 
   def nextImageMinibatch(): Array[ByteImage] = {
-    if (currMinibatchImages.isEmpty) {
-      nextMinibatch()
-      return currMinibatchImages.get
-    } else {
-      val images = currMinibatchImages.get
-      currMinibatchImages = None
-      currMinibatchLabels = None
-      return images
+    if (loaded == false) {
+      loadMinibatches()
+      loaded = true
     }
+    val images = currImageMinibatches(imagePosition)
+    imagePosition = (imagePosition + 1) % numMinibatchesToLoad
+    if (imagePosition == 0 && labelPosition == 0) {
+      loaded = false
+    }
+    return images
   }
 
   def nextLabelMinibatch(): Array[Int] = {
-    if (currMinibatchLabels.isEmpty) {
-      nextMinibatch()
-      return currMinibatchLabels.get
-    } else {
-      val labels = currMinibatchLabels.get
-      currMinibatchImages = None
-      currMinibatchLabels = None
-      return labels
+    if (loaded == false) {
+      loadMinibatches()
+      loaded = true
     }
+    val labels = currLabelMinibatches(labelPosition)
+    labelPosition = (labelPosition + 1) % numMinibatchesToLoad
+    if (imagePosition == 0 && labelPosition == 0) {
+      loaded = false
+    }
+    return labels
   }
-
 }
