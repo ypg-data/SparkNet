@@ -41,4 +41,22 @@ class MinibatchSamplerSpec extends FlatSpec {
     assert(imageMinibatch(0).getRed(0, 0) == sampler.indices(i).toByte)
     assert(labelMinibatch(0) == sampler.indices(i))
   }
+
+  val s = scala.util.Random
+  sampler = new MinibatchSampler(minibatches.iterator, minibatches.length, 50)
+  for (i <- 0 to 49) {
+    var (imageMinibatch, labelMinibatch) = {
+      if (s.nextBoolean) {
+        val tempLabelMinibatch = sampler.nextLabelMinibatch()
+        val tempImageMinibatch = sampler.nextImageMinibatch()
+        (tempImageMinibatch, tempLabelMinibatch)
+      } else {
+        val tempImageMinibatch = sampler.nextImageMinibatch()
+        val tempLabelMinibatch = sampler.nextLabelMinibatch()
+        (tempImageMinibatch, tempLabelMinibatch)
+      }
+    }
+    assert(imageMinibatch(0).getRed(0, 0) == sampler.indices(i).toByte)
+    assert(labelMinibatch(0) == sampler.indices(i))
+  }
 }

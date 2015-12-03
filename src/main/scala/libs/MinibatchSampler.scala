@@ -1,5 +1,76 @@
 package libs
 
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+
+class MinibatchSampler(minibatchIt: Iterator[(Array[ByteImage], Array[Int])], totalNumBatches: Int, numSampledBatches: Int) {
+  // The purpose of this method is to take minibatchIt, which is an iterator
+  // over images and labels, and to turn it into two iterators, one over images
+  // and one over labels. The iterator over images is used to create a callback
+  // that Caffe uses to get the next minibatch of images. The iterator over
+  // labels is used to create a callback that Caffe uses to get the next
+  // minibatch of labels. We cannot use the same iterator for both purposes
+  // because incrementing the iterator in one callback will increment it in the
+  // other callback as well, since they are the same object.
+
+  // totalNumBatches = minibatchIt.length (but we can't call minibatchIt.length because that would consume the entire iterator)
+  // numSampledBatches is the number of minibatches that we subsample from minibatchIt
+
+  var it = minibatchIt // we need to update the iterator by calling it.drop, and we need it to be a var to do this
+  val r = scala.util.Random
+  val startIdx = r.nextInt(totalNumBatches - numSampledBatches + 1)
+  val indices = Array.range(startIdx, startIdx + numSampledBatches)
+  var indicesIndex = 0
+  var currMinibatchPosition = -1
+
+  val numMinibatchesToLoad = 20
+  var imagePosition = 0
+  var labelPosition = 0
+  var loaded = false
+
+  //var currMinibatchAndIterator = None: Option[Future[(Array[ByteImage], Array[Int], Iterator[(Array[ByteImage], Array[Int])])]]
+  var nextMinibatchAndIterator = Future { fetchNextMinibatch(it) }: Future[((Array[ByteImage], Array[Int]), Iterator[(Array[ByteImage], Array[Int])])]
+  var currImageMinibatch = None: Option[Array[ByteImage]]
+  var currLabelMinibatch = None: Option[Array[Int]]
+
+  private def fetchNextMinibatch(it: Iterator[(Array[ByteImage], Array[Int])]): ((Array[ByteImage], Array[Int]), Iterator[(Array[ByteImage], Array[Int])]) = {
+    val newIt = it.drop(indices(indicesIndex) - currMinibatchPosition - 1)
+    currMinibatchPosition = indices(indicesIndex)
+    indicesIndex += 1
+    assert(newIt.hasNext)
+    return (newIt.next, newIt)
+  }
+
+  private def loadNextMinibatch() = {
+    val (tempBatch, tempIt) = Await.result(nextMinibatchAndIterator, Duration.Inf)
+    currImageMinibatch = Some(tempBatch._1)
+    currLabelMinibatch = Some(tempBatch._2)
+    it = tempIt
+    nextMinibatchAndIterator = Future { fetchNextMinibatch(it) }
+    // the closure inside Future could fail on the last call to loadNextMinibatch because the iterator may be completely consumed
+  }
+
+  def nextImageMinibatch(): Array[ByteImage] = {
+    if (currImageMinibatch.isEmpty) {
+      loadNextMinibatch()
+    }
+    val tempImageMinibatch = currImageMinibatch.get
+    currImageMinibatch = None
+    return tempImageMinibatch
+  }
+
+  def nextLabelMinibatch(): Array[Int] = {
+    if (currLabelMinibatch.isEmpty) {
+      loadNextMinibatch()
+    }
+    val tempLabelMinibatch = currLabelMinibatch.get
+    currLabelMinibatch = None
+    return tempLabelMinibatch
+  }
+}
+
+/*
 class MinibatchSampler(minibatchIt: Iterator[(Array[ByteImage], Array[Int])], totalNumBatches: Int, numSampledBatches: Int) {
   // The purpose of this method is to take minibatchIt, which is an iterator
   // over images and labels, and to turn it into two iterators, one over images
@@ -68,3 +139,65 @@ class MinibatchSampler(minibatchIt: Iterator[(Array[ByteImage], Array[Int])], to
     return labels
   }
 }
+*/
+
+/*
+class MinibatchSampler(minibatchIt: Iterator[(Array[ByteImage], Array[Int])], totalNumBatches: Int, numSampledBatches: Int) {
+  // The purpose of this method is to take minibatchIt, which is an iterator
+  // over images and labels, and to turn it into two iterators, one over images
+  // and one over labels. The iterator over images is used to create a callback
+  // that Caffe uses to get the next minibatch of images. The iterator over
+  // labels is used to create a callback that Caffe uses to get the next
+  // minibatch of labels. We cannot use the same iterator for both purposes
+  // because incrementing the iterator in one callback will increment it in the
+  // other callback as well, since they are the same object.
+
+  // totalNumBatches = minibatchIt.length (but we can't call minibatchIt.length because that would consume the entire iterator)
+  // numSampledBatches is the number of minibatches that we subsample from minibatchIt
+
+  var it = minibatchIt // we need to update the iterator by calling it.drop, and we need it to be a var to do this
+  val r = scala.util.Random
+  val startIdx = r.nextInt(totalNumBatches - numSampledBatches + 1)
+  val indices = Array.range(startIdx, startIdx + numSampledBatches)
+  var indicesIndex = 0
+  var currMinibatchPosition = -1
+
+  var currMinibatchImages = None: Option[Array[ByteImage]]
+  var currMinibatchLabels = None: Option[Array[Int]]
+
+  private def nextMinibatch() = {
+    it = it.drop(indices(indicesIndex) - currMinibatchPosition - 1)
+    currMinibatchPosition = indices(indicesIndex)
+    indicesIndex += 1
+    assert(it.hasNext)
+    val (images, labels) = it.next
+    currMinibatchImages = Some(images)
+    currMinibatchLabels = Some(labels)
+  }
+
+  def nextImageMinibatch(): Array[ByteImage] = {
+    if (currMinibatchImages.isEmpty) {
+      nextMinibatch()
+      return currMinibatchImages.get
+    } else {
+      val images = currMinibatchImages.get
+      currMinibatchImages = None
+      currMinibatchLabels = None
+      return images
+    }
+  }
+
+  def nextLabelMinibatch(): Array[Int] = {
+    if (currMinibatchLabels.isEmpty) {
+      nextMinibatch()
+      return currMinibatchLabels.get
+    } else {
+      val labels = currMinibatchLabels.get
+      currMinibatchImages = None
+      currMinibatchLabels = None
+      return labels
+    }
+  }
+
+}
+*/
