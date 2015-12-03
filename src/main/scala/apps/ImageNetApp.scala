@@ -61,9 +61,9 @@ object ImageNetApp {
 
     val loader = new ImageNetLoader("sparknet")
     log("loading train data")
-    var trainRDD = loader.apply(sc, "ILSVRC2012_train/files-shuf-0", "train.txt")
+    var trainRDD = loader.apply(sc, "ILSVRC2012_train/", "train.txt")
     log("loading test data")
-    val testRDD = loader.apply(sc, "ILSVRC2012_test/validation.0", "test.txt")
+    val testRDD = loader.apply(sc, "ILSVRC2012_test/", "test.txt")
 
     log("processing train data")
     val trainConverter = new ScaleAndConvert(trainBatchSize, fullHeight, fullWidth)
