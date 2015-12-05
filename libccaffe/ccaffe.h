@@ -17,6 +17,10 @@ extern "C" {
   int get_int_size(); // get number of bytes for native int
   int get_dtype_size(); // get number of bytes for DTYPE
 
+  void create_db(caffenet_state* state, char* db_name, int name_len);
+  void write_to_db(caffenet_state* state, char* image, int label, int height, int width, char* key_str);
+  void commit_db_txn(caffenet_state* state);
+
   caffenet_state* create_state();
   void destroy_state(caffenet_state* state);
 

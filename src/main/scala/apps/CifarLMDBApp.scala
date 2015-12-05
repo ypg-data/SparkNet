@@ -11,7 +11,11 @@ import preprocessing._
 
 // for this app to work, $SPARKNET_HOME should be the SparkNet root directory
 // and you need to run $SPARKNET_HOME/caffe/data/cifar10/get_cifar10.sh
-object CifarApp {
+// TODO: for this to work, you need to create examples/cifar10/mean.binaryproto (and on all the workers)
+// TODO: for this to work, we have to create the LMDB before we create the CaffeNet
+// TODO: for this to work, we also need to copy some generic LMDB to the master
+
+object CifarLMDBApp {
   val trainBatchSize = 100
   val testBatchSize = 100
   val channels = 3
@@ -23,17 +27,18 @@ object CifarApp {
   val sparkNetHome = "/root/SparkNet"
   System.load(sparkNetHome + "/build/libccaffe.so")
   val caffeLib = CaffeLibrary.INSTANCE
+  caffeLib.set_basepath(sparkNetHome + "/caffe/") // TODO: careful about logging with relative file paths, because this calls chdir
 
   // initialize nets on workers
   var netParameter = ProtoLoader.loadNetPrototxt(sparkNetHome + "/caffe/examples/cifar10/cifar10_full_train_test.prototxt")
-  netParameter = ProtoLoader.replaceDataLayers(netParameter, trainBatchSize, testBatchSize, channels, height, width)
+  //netParameter = ProtoLoader.replaceDataLayers(netParameter, trainBatchSize, testBatchSize, channels, height, width)
   val solverParameter = ProtoLoader.loadSolverPrototxtWithNet(sparkNetHome + "/caffe/examples/cifar10/cifar10_full_solver.prototxt", netParameter, None)
   val net = CaffeNet(caffeLib, solverParameter)
 
   def main(args: Array[String]) {
     val numWorkers = args(0).toInt
     val conf = new SparkConf()
-      .setAppName("Cifar")
+      .setAppName("CifarLMDB")
       .set("spark.driver.maxResultSize", "5G")
       .set("spark.task.maxFailures", "1")
     val sc = new SparkContext(conf)
@@ -83,6 +88,22 @@ object CifarApp {
     log("trainPartitionSizes = " + trainPartitionSizes.collect().deep.toString)
     log("testPartitionSizes = " + testPartitionSizes.collect().deep.toString)
 
+    /*
+    log("write train data to LMDB")
+    trainMinibatchRDD.mapPartitions(minibatchIt => {
+      val LMDBCreator = new CreateLMDB(caffeLib)
+      LMDBCreator.makeLMDB(minibatchIt, sparkNetHome + "/caffe/examples/cifar10/cifar10_train_lmdb", height, width)
+      Array(0).iterator
+    }).foreach(_ => ())
+
+    log("write test data to LMDB")
+    testMinibatchRDD.mapPartitions(minibatchIt => {
+      val LMDBCreator = new CreateLMDB(caffeLib)
+      LMDBCreator.makeLMDB(minibatchIt, sparkNetHome + "/caffe/examples/cifar10/cifar10_test_lmdb", height, width)
+      Array(0).iterator
+    }).foreach(_ => ())
+    */
+
     val workers = sc.parallelize(Array.range(0, numWorkers), numWorkers)
 
     var i = 0
@@ -94,14 +115,11 @@ object CifarApp {
 
       if (i % 10 == 0) {
         log("testing, i")
-        val testScores = testPartitionSizes.zipPartitions(testMinibatchRDD) (
-          (lenIt, testMinibatchIt) => {
-            assert(lenIt.hasNext && testMinibatchIt.hasNext)
-            val len = lenIt.next
-            assert(!lenIt.hasNext)
-            val minibatchSampler = new MinibatchSampler(testMinibatchIt, len, len)
-            net.setTestData(minibatchSampler, len, None)
-            Array(net.test()).iterator // do testing
+        // TODO: actually need to tell Caffe the number of iterations of testing
+        val testScores = testPartitionSizes.map(
+          size => {
+            net.setNumTestBatches(size)
+            net.test()
           }
         ).cache()
         val testScoresAggregate = testScores.reduce((a, b) => (a, b).zipped.map(_ + _))
@@ -111,17 +129,7 @@ object CifarApp {
 
       log("training", i)
       val syncInterval = 10
-      trainPartitionSizes.zipPartitions(trainMinibatchRDD) (
-        (lenIt, trainMinibatchIt) => {
-          assert(lenIt.hasNext && trainMinibatchIt.hasNext)
-          val len = lenIt.next
-          assert(!lenIt.hasNext)
-          val minibatchSampler = new MinibatchSampler(trainMinibatchIt, len, syncInterval)
-          net.setTrainData(minibatchSampler, None)
-          net.train(syncInterval)
-          Array(0).iterator
-        }
-      ).foreachPartition(_ => ())
+      workers.foreach(_ => net.train(syncInterval))
 
       log("collecting weights", i)
       netWeights = workers.map(_ => { net.getWeights() }).reduce((a, b) => WeightCollection.add(a, b))

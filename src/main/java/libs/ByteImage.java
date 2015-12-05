@@ -74,6 +74,15 @@ public class ByteImage {
     blue = new byte[width * height];
   }
 
+  public void copyToBuffer(byte[] buffer) {
+    assert(3 * height * width == buffer.length);
+    for (int i = 0; i < width * height; i++) {
+      buffer[0 * height * width + i] = red[i];
+      buffer[1 * height * width + i] = green[i];
+      buffer[2 * height * width + i] = blue[i];
+    }
+  }
+
   public void cropInto(float[] buffer, int[] lowerOffsets, int[] upperOffsets) {
     assert(0 <= lowerOffsets[0] && lowerOffsets[0] < upperOffsets[0] && upperOffsets[0] <= height);
     assert(0 <= lowerOffsets[1] && lowerOffsets[1] < upperOffsets[1] && upperOffsets[1] <= width);

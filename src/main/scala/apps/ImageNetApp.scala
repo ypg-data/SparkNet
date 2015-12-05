@@ -27,13 +27,15 @@ object ImageNetApp {
   val fullImShape = Array(channels, fullHeight, fullWidth)
   val fullImSize = fullImShape.product
 
-  // initialize nets on workers
   val sparkNetHome = "/root/SparkNet"
   System.load(sparkNetHome + "/build/libccaffe.so")
+  val caffeLib = CaffeLibrary.INSTANCE
+
+  // initialize nets on workers
   var netParameter = ProtoLoader.loadNetPrototxt(sparkNetHome + "/caffe/models/bvlc_reference_caffenet/train_val.prototxt")
   netParameter = ProtoLoader.replaceDataLayers(netParameter, trainBatchSize, testBatchSize, channels, croppedHeight, croppedWidth)
   val solverParameter = ProtoLoader.loadSolverPrototxtWithNet(sparkNetHome + "/caffe/models/bvlc_reference_caffenet/solver.prototxt", netParameter, None)
-  val net = CaffeNet(solverParameter)
+  val net = CaffeNet(caffeLib, solverParameter)
 
   def main(args: Array[String]) {
     val numWorkers = args(0).toInt
@@ -46,7 +48,7 @@ object ImageNetApp {
 
     // information for logging
     val startTime = System.currentTimeMillis()
-    val trainingLog = new PrintWriter(new File("training_log_" + startTime.toString + ".txt" ))
+    val trainingLog = new PrintWriter(new File(sparkNetHome + "/training_log_" + startTime.toString + ".txt" ))
     def log(message: String, i: Int = -1) {
       val elapsedTime = 1F * (System.currentTimeMillis() - startTime) / 1000
       if (i == -1) {
