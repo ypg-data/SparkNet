@@ -80,6 +80,7 @@ object CifarCreateLMDBApp {
       cifarDataFile.getParentFile().mkdirs()
       val cifarDataWriter = new PrintWriter(cifarDataFile)
       cifarDataWriter.write(numTrainBatches.toString)
+      cifarDataWriter.flush()
     })
     log("storing number of test minibatches in file")
     testPartitionSizes.foreach(numTestBatches => {
@@ -87,6 +88,7 @@ object CifarCreateLMDBApp {
       cifarDataFile.getParentFile().mkdirs()
       val cifarDataWriter = new PrintWriter(cifarDataFile)
       cifarDataWriter.write(numTestBatches.toString)
+      cifarDataWriter.flush()
     })
 
     log("write train data to LMDB")
