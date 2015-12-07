@@ -77,12 +77,14 @@ object CifarCreateLMDBApp {
     log("storing number of train minibatches in file")
     trainPartitionSizes.foreach(numTrainBatches => {
       val cifarDataFile = new File(sparkNetHome + "/infoFiles/cifar_10_num_train_batches.txt")
+      cifarDataFile.getParentFile().mkdirs()
       val cifarDataWriter = new PrintWriter(cifarDataFile)
       cifarDataWriter.write(numTrainBatches.toString)
     })
     log("storing number of test minibatches in file")
     testPartitionSizes.foreach(numTestBatches => {
       val cifarDataFile = new File(sparkNetHome + "/infoFiles/cifar_10_num_test_batches.txt")
+      cifarDataFile.getParentFile().mkdirs()
       val cifarDataWriter = new PrintWriter(cifarDataFile)
       cifarDataWriter.write(numTestBatches.toString)
     })
