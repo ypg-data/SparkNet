@@ -70,8 +70,9 @@ object CifarLMDBApp {
         c = reader.read
       }
       size
-    })
+    }).cache()
     val numTestMinibatches = testPartitionSizes.sum()
+    log("testPartitionSizes = " + testPartitionSizes.collect().deep.toString)
 
     var i = 0
     while (true) {
