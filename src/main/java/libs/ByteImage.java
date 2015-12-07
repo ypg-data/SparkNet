@@ -3,7 +3,7 @@ package libs;
 
 import java.awt.image.BufferedImage;
 
-public class ByteImage {
+public class ByteImage implements java.io.Serializable {
   private byte[] red;
   private byte[] green;
   private byte[] blue;
