@@ -76,7 +76,7 @@ void commit_db_txn(caffenet_state* state) {
 }
 
 void save_mean_image(caffenet_state* state, float* mean_image, int height, int width, char* filename, int filename_len) {
-  BlobProto sum_blob;
+  caffe::BlobProto sum_blob;
   sum_blob.set_num(1);
   sum_blob.set_channels(3);
   sum_blob.set_height(height);
@@ -89,7 +89,7 @@ void save_mean_image(caffenet_state* state, float* mean_image, int height, int w
   for (int i = 0; i < size_in_datum; ++i) {
     sum_blob.set_data(i, mean_image[i]);
   }
-  WriteProtoToBinaryFile(sum_blob, std::string(filename, filename_len));
+  caffe::WriteProtoToBinaryFile(sum_blob, std::string(filename, filename_len));
 }
 
 caffenet_state* create_state() {
