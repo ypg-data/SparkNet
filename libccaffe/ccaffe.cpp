@@ -2,6 +2,7 @@
 #include "caffe/solver.hpp"
 #include "caffe/sgd_solvers.hpp"
 #include "caffe/data_layers.hpp"
+#include "caffe/data_transformer.hpp"
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/io.hpp"
 #include "caffe/util/db.hpp"
