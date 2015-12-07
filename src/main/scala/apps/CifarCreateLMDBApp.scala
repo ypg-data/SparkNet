@@ -103,6 +103,11 @@ object CifarCreateLMDBApp {
       Array(0).iterator
     }).foreach(_ => ())
 
+    log("create emtpy LMDBs on master")
+    val LMDBCreator = new CreateLMDB(caffeLib)
+    LMDBCreator.makeLMDB((new Array[(Array[ByteImage], Array[Int])](0)).iterator, sparkNetHome + "/caffe/examples/cifar10/cifar10_train_lmdb", height, width)
+    LMDBCreator.makeLMDB((new Array[(Array[ByteImage], Array[Int])](0)).iterator, sparkNetHome + "/caffe/examples/cifar10/cifar10_test_lmdb", height, width)
+
     val workers = sc.parallelize(Array.range(0, numWorkers), numWorkers)
 
     log("computing mean image")
