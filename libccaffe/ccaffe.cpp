@@ -74,6 +74,23 @@ void commit_db_txn(caffenet_state* state) {
   state->txn = state->db->NewTransaction();
 }
 
+void save_mean_image(caffenet_state* state, float* mean_image, int height, int width, char* filename, int filename_len) {
+  BlobProto sum_blob;
+  sum_blob.set_num(1);
+  sum_blob.set_channels(3);
+  sum_blob.set_height(height);
+  sum_blob.set_width(width);
+  const int data_size = 3 * height * width;
+  int size_in_datum = 3 * height * width * sizeof(DTYPE); // TODO: check that this is the right size
+  for (int i = 0; i < size_in_datum; ++i) {
+    sum_blob.add_data(0.);
+  }
+  for (int i = 0; i < size_in_datum; ++i) {
+    sum_blob.set_data(i, mean_image[i]);
+  }
+  WriteProtoToBinaryFile(sum_blob, std::string(filename, filename_len));
+}
+
 caffenet_state* create_state() {
   caffenet_state *state = new caffenet_state();
   state->net = NULL;

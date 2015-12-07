@@ -27,11 +27,10 @@ object CifarLMDBApp {
   val sparkNetHome = "/root/SparkNet"
   System.load(sparkNetHome + "/build/libccaffe.so")
   val caffeLib = CaffeLibrary.INSTANCE
-  caffeLib.set_basepath(sparkNetHome + "/caffe/") // TODO: careful about logging with relative file paths, because this calls chdir
+  caffeLib.set_basepath(sparkNetHome + "/caffe/")
 
   // initialize nets on workers
   var netParameter = ProtoLoader.loadNetPrototxt(sparkNetHome + "/caffe/examples/cifar10/cifar10_full_train_test.prototxt")
-  //netParameter = ProtoLoader.replaceDataLayers(netParameter, trainBatchSize, testBatchSize, channels, height, width)
   val solverParameter = ProtoLoader.loadSolverPrototxtWithNet(sparkNetHome + "/caffe/examples/cifar10/cifar10_full_solver.prototxt", netParameter, None)
   val net = CaffeNet(caffeLib, solverParameter)
 
@@ -58,53 +57,21 @@ object CifarLMDBApp {
 
     var netWeights = net.getWeights()
 
-    val loader = new CifarLoader(sparkNetHome + "/caffe/data/cifar10/")
-    log("loading train data")
-    var trainRDD = sc.parallelize(loader.trainImages.zip(loader.trainLabels))
-    log("loading test data")
-    var testRDD = sc.parallelize(loader.testImages.zip(loader.testLabels))
-
-    log("repartition data")
-    trainRDD = trainRDD.repartition(numWorkers)
-    testRDD = testRDD.repartition(numWorkers)
-
-    log("processing train data")
-    val trainConverter = new ScaleAndConvert(trainBatchSize, height, width)
-    var trainMinibatchRDD = trainConverter.makeMinibatchRDDWithoutCompression(trainRDD).persist()
-    val numTrainMinibatches = trainMinibatchRDD.count()
-    log("numTrainMinibatches = " + numTrainMinibatches.toString)
-
-    log("processing test data")
-    val testConverter = new ScaleAndConvert(testBatchSize, height, width)
-    var testMinibatchRDD = testConverter.makeMinibatchRDDWithoutCompression(testRDD).persist()
-    val numTestMinibatches = testMinibatchRDD.count()
-    log("numTestMinibatches = " + numTestMinibatches.toString)
-
-    val numTrainData = numTrainMinibatches * trainBatchSize
-    val numTestData = numTestMinibatches * testBatchSize
-
-    val trainPartitionSizes = trainMinibatchRDD.mapPartitions(iter => Array(iter.size).iterator).persist()
-    val testPartitionSizes = testMinibatchRDD.mapPartitions(iter => Array(iter.size).iterator).persist()
-    log("trainPartitionSizes = " + trainPartitionSizes.collect().deep.toString)
-    log("testPartitionSizes = " + testPartitionSizes.collect().deep.toString)
-
-    /*
-    log("write train data to LMDB")
-    trainMinibatchRDD.mapPartitions(minibatchIt => {
-      val LMDBCreator = new CreateLMDB(caffeLib)
-      LMDBCreator.makeLMDB(minibatchIt, sparkNetHome + "/caffe/examples/cifar10/cifar10_train_lmdb", height, width)
-      Array(0).iterator
-    }).foreach(_ => ())
-
-    log("write test data to LMDB")
-    testMinibatchRDD.mapPartitions(minibatchIt => {
-      val LMDBCreator = new CreateLMDB(caffeLib)
-      LMDBCreator.makeLMDB(minibatchIt, sparkNetHome + "/caffe/examples/cifar10/cifar10_test_lmdb", height, width)
-      Array(0).iterator
-    }).foreach(_ => ())
-    */
-
     val workers = sc.parallelize(Array.range(0, numWorkers), numWorkers)
+
+    // TODO: should get the size from the database instead of reading it from a file
+    val testPartitionSizes = workers.map(_ => {
+      val reader = new FileReader(new File(sparkNetHome + "/infoFiles/cifar_10_num_test_batches.txt"))
+      var c = reader.read
+      var size = 0
+      while (c != -1) {
+        size *= 10
+        size += c.toChar.toString.toInt
+        c = reader.read
+      }
+      size
+    })
+    val numTestMinibatches = testPartitionSizes.sum()
 
     var i = 0
     while (true) {
@@ -115,7 +82,6 @@ object CifarLMDBApp {
 
       if (i % 10 == 0) {
         log("testing, i")
-        // TODO: actually need to tell Caffe the number of iterations of testing
         val testScores = testPartitionSizes.map(
           size => {
             net.setNumTestBatches(size)

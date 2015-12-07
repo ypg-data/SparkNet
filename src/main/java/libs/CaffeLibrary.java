@@ -24,6 +24,8 @@ public interface CaffeLibrary extends Library {
   void commit_db_txn(Pointer state);
   byte[] image_to_datum(byte[] image, int label, int height, int width);
 
+  void save_mean_image(Pointer state, float[] mean_image, int height, int width, String filename, int filename_len);
+
   Pointer create_state();
   void destroy_state(Pointer state);
 
