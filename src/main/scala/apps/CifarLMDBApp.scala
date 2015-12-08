@@ -9,12 +9,12 @@ import libs._
 import loaders._
 import preprocessing._
 
-// for this app to work, $SPARKNET_HOME should be the SparkNet root directory
-// and you need to run $SPARKNET_HOME/caffe/data/cifar10/get_cifar10.sh
-// TODO: for this to work, you need to create examples/cifar10/mean.binaryproto (and on all the workers)
-// TODO: for this to work, we have to create the LMDB before we create the CaffeNet
-// TODO: for this to work, we also need to copy some generic LMDB to the master
-
+// for this app to work, you need to set "sparkNetHome" below to the SparkNet
+// root directory,  and you need to run
+// $SPARKNET_HOME/caffe/data/cifar10/get_cifar10.sh to get the cifar data, and
+// you need to run CifarCreateLMDBApp first in order to create
+// caffe/examples/cifar10/mean.binaryproto as well as the train and test LMDB
+// databases used by Caffe
 object CifarLMDBApp {
   val trainBatchSize = 100
   val testBatchSize = 100
@@ -71,8 +71,10 @@ object CifarLMDBApp {
       }
       size
     }).cache()
-    val numTestMinibatches = testPartitionSizes.sum()
+    testPartitionSizes.foreach(size => net.setNumTestBatches(size)) // tell each net how many test batches it has
     log("testPartitionSizes = " + testPartitionSizes.collect().deep.toString)
+    val numTestMinibatches = testPartitionSizes.sum()
+
 
     var i = 0
     while (true) {
@@ -83,12 +85,7 @@ object CifarLMDBApp {
 
       if (i % 10 == 0) {
         log("testing, i")
-        val testScores = testPartitionSizes.map(
-          size => {
-            net.setNumTestBatches(size)
-            net.test()
-          }
-        ).cache()
+        val testScores = testPartitionSizes.map(size => net.test()).cache()
         val testScoresAggregate = testScores.reduce((a, b) => (a, b).zipped.map(_ + _))
         val accuracies = testScoresAggregate.map(v => 100F * v / numTestMinibatches)
         log("%.2f".format(accuracies(0)) + "% accuracy", i)
