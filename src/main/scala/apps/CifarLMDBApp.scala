@@ -83,6 +83,7 @@ object CifarLMDBApp {
       log("setting weights on workers", i)
       workers.foreach(_ => net.setWeights(broadcastWeights.value))
 
+      /*
       if (i % 10 == 0) {
         log("testing, i")
         val testScores = testPartitionSizes.map(size => net.test()).cache()
@@ -90,6 +91,7 @@ object CifarLMDBApp {
         val accuracies = testScoresAggregate.map(v => 100F * v / numTestMinibatches)
         log("%.2f".format(accuracies(0)) + "% accuracy", i)
       }
+      */
 
       log("training", i)
       val syncInterval = 10
