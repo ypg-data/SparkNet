@@ -63,7 +63,7 @@ void write_to_db(caffenet_state* state, char* image, int label, int height, int 
   datum.clear_float_data();
   datum.set_encoded(false);
   datum.set_label(label);
-  datum.set_data(std::string(image, 3 * height * width));
+  datum.set_data(image, 3 * height * width);
   std::string out;
   CHECK(datum.SerializeToString(&out));
   state->txn->Put(key_str, out);
@@ -73,6 +73,10 @@ void commit_db_txn(caffenet_state* state) {
   state->txn->Commit();
   delete state->txn;
   state->txn = state->db->NewTransaction();
+}
+
+void close_db(caffenet_state* state) {
+  state->db->Close();
 }
 
 void save_mean_image(caffenet_state* state, float* mean_image, int height, int width, char* filename, int filename_len) {

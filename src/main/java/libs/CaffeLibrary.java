@@ -22,6 +22,7 @@ public interface CaffeLibrary extends Library {
   void create_db(Pointer state, String db_name, int name_len);
   void write_to_db(Pointer state, byte[] image, int label, int height, int width, String key_str);
   void commit_db_txn(Pointer state);
+  void close_db(Pointer state);
   byte[] image_to_datum(byte[] image, int label, int height, int width);
 
   void save_mean_image(Pointer state, float[] mean_image, int height, int width, String filename, int filename_len);

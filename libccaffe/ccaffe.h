@@ -20,6 +20,7 @@ extern "C" {
   void create_db(caffenet_state* state, char* db_name, int name_len);
   void write_to_db(caffenet_state* state, char* image, int label, int height, int width, char* key_str);
   void commit_db_txn(caffenet_state* state);
+  void close_db(caffenet_state* state);
 
   void save_mean_image(caffenet_state* state, float* mean_image, int height, int width, char* filename, int filename_len);
 

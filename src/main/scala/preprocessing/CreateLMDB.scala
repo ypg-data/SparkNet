@@ -25,5 +25,6 @@ class CreateLMDB(caffeLib: CaffeLibrary) {
       caffeLib.commit_db_txn(state)
       print(counter.toString + " images written to db\n")
     }
+		caffeLib.close_db(state)
   }
 }
