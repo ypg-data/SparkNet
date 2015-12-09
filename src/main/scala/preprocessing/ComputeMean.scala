@@ -20,8 +20,8 @@ object ComputeMean {
           val width = currentImage.getWidth()
           assert(shape.length == 3 && shape(0) == 3 && shape(1) == currentImage.getHeight() && shape(2) == currentImage.getWidth())
           var row = 0
-          var col = 0
           while (row < height) {
+            var col = 0
             while (col < width) {
               runningImageSum(0 * height * width + row * width + col) += (currentImage.getRed(row, col) & 0xFF)
               runningImageSum(1 * height * width + row * width + col) += (currentImage.getGreen(row, col) & 0xFF)
