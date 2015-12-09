@@ -83,6 +83,10 @@ object CifarLMDBApp {
       log("setting weights on workers", i)
       workers.foreach(_ => net.setWeights(broadcastWeights.value))
 
+      if (i % 10 == 0) {
+        net.setWeights(netWeights)
+        net.saveWeightsToFile("/root/weights/" + i.toString + ".caffemodel")
+      }
       /*
       if (i % 10 == 0) {
         log("testing, i")

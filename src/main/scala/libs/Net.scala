@@ -200,6 +200,10 @@ class CaffeNet(state: Pointer, caffeLib: CaffeLibrary) extends Net {
     caffeLib.load_weights_from_file(state, filename)
   }
 
+  def saveWeightsToFile(filename: String) {
+    caffeLib.save_weights_to_file(state, filename)
+  }
+
   private def getShape(blob: Pointer): Array[Int] = {
     val numAxes = caffeLib.get_num_axes(blob)
     val shape = new Array[Int](numAxes)
