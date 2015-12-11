@@ -61,6 +61,7 @@ object CifarLMDBApp {
 
     // TODO: should get the size from the database instead of reading it from a file
     val testPartitionSizes = workers.map(_ => {
+      print("hi\n")
       val reader = new FileReader(new File(sparkNetHome + "/infoFiles/cifar_10_num_test_batches.txt"))
       var c = reader.read
       var size = 0
