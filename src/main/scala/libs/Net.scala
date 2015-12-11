@@ -104,13 +104,14 @@ class CaffeNet(state: Pointer, caffeLib: CaffeLibrary) extends Net {
     caffeLib.set_mode_gpu()
     assert(!numTestBatches.isEmpty)
     caffeLib.solver_test(state, numTestBatches.get) // you must run this before running caffeLib.num_test_scores(state)
-    val numTestScores = caffeLib.num_test_scores(state)
-    val testScores = new Array[Float](numTestScores)
-    for (i <- 0 to numTestScores - 1) {
-      testScores(i) = caffeLib.get_test_score(state, i) // for accuracy layers, this returns the average accuracy over a minibatch
-    }
-    print("testScores = " + testScores.deep.toString + "\n")
-    return testScores
+    //val numTestScores = caffeLib.num_test_scores(state)
+    //val testScores = new Array[Float](numTestScores)
+    //for (i <- 0 to numTestScores - 1) {
+    //  testScores(i) = caffeLib.get_test_score(state, i) // for accuracy layers, this returns the average accuracy over a minibatch
+    //}
+    //print("testScores = " + testScores.deep.toString + "\n")
+    //return testScores
+    return Array(0)
   }
 
   def setWeights(allWeights: WeightCollection) = {

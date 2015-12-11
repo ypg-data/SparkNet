@@ -83,19 +83,20 @@ object CifarLMDBApp {
       log("setting weights on workers", i)
       workers.foreach(_ => net.setWeights(broadcastWeights.value))
 
+      /*
       if (i % 10 == 0) {
         net.setWeights(netWeights)
         net.saveWeightsToFile("/root/weights/" + i.toString + ".caffemodel")
       }
-      /*
+      */
+
       if (i % 10 == 0) {
         log("testing, i")
-        val testScores = testPartitionSizes.map(size => net.test()).cache()
+        val testScores = workers.map(_ => net.test()).cache()
         val testScoresAggregate = testScores.reduce((a, b) => (a, b).zipped.map(_ + _))
         val accuracies = testScoresAggregate.map(v => 100F * v / numTestMinibatches)
         log("%.2f".format(accuracies(0)) + "% accuracy", i)
       }
-      */
 
       log("training", i)
       val syncInterval = 10

@@ -232,8 +232,9 @@ int solver_step(caffenet_state* state, int step) {
 }
 
 void solver_test(caffenet_state* state, int num_steps) {
-  state->test_score->clear();
-  state->solver->TestAndStoreResult(0, num_steps, state->test_score);
+  state->solver->Test(0);
+  //state->test_score->clear();
+  //state->solver->TestAndStoreResult(0, num_steps, state->test_score);
 }
 
 DTYPE get_test_score(caffenet_state* state, int accuracy_idx) {
