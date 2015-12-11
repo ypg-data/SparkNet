@@ -57,7 +57,8 @@ object CifarLMDBApp {
 
     var netWeights = net.getWeights()
 
-    val workers = sc.parallelize(Array.range(0, numWorkers), numWorkers)
+    //val workers = sc.parallelize(Array.range(0, numWorkers), numWorkers)
+    val workers = sc.parallelize(Array.range(0, 100000), numWorkers).mapPartitions(it => Array(0).iterator).cache() // TODO: change this hack
 
     // TODO: should get the size from the database instead of reading it from a file
     val testPartitionSizes = workers.map(_ => {
